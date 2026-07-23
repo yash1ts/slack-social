@@ -30,7 +30,11 @@ function authHeaders(token?: string, cookie?: string): Record<string, string> {
   return headers;
 }
 
-async function downloadEmoji(
+/**
+ * Download a single custom emoji image on demand and cache it under EMOJI_DIR.
+ * Used by the image API when a feed/reaction actually needs to show the emoji.
+ */
+export async function downloadEmoji(
   name: string,
   url: string,
   token?: string,
@@ -66,32 +70,14 @@ async function downloadEmoji(
   }
 }
 
-async function mapPool<T, R>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i]!);
-    }
-  }
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
-  await Promise.all(workers);
-  return results;
-}
-
 /**
- * Fetch workspace custom emoji via emoji.list and cache locally.
- * Replaces the local catalog so removals / URL changes stay in sync.
+ * Fetch workspace custom emoji via emoji.list and store metadata only.
+ * Image bytes are downloaded lazily when `/api/emoji/[name]` is requested.
  */
 export async function syncWorkspaceEmojis(
   client: WebClient,
   db: Database,
-  opts: { token?: string; sessionCookie?: string; force?: boolean } = {},
+  _opts: { token?: string; sessionCookie?: string; force?: boolean } = {},
 ): Promise<{ count: number }> {
   let emoji: Record<string, string> = {};
   try {
@@ -110,8 +96,6 @@ export async function syncWorkspaceEmojis(
   // Full replace keeps catalog accurate (drops stale/test rows)
   clearEmojis(db);
 
-  const downloads: Array<{ name: string; url: string }> = [];
-
   for (const [name, value] of Object.entries(emoji)) {
     if (value.startsWith("alias:")) {
       upsertEmoji(db, {
@@ -129,25 +113,11 @@ export async function syncWorkspaceEmojis(
         localPath: null,
         updatedAt: now,
       });
-      downloads.push({ name, url: value });
     }
   }
 
-  await mapPool(downloads, 8, async ({ name, url }) => {
-    const localPath = await downloadEmoji(name, url, opts.token, opts.sessionCookie);
-    if (localPath) {
-      upsertEmoji(db, {
-        name,
-        url,
-        aliasOf: null,
-        localPath,
-        updatedAt: now,
-      });
-    }
-  });
-
   writeConfig({ ...readConfig(), lastEmojiSyncAt: now });
-  console.log(`  emoji catalog: ${Object.keys(emoji).length} custom emoji`);
+  console.log(`  emoji catalog: ${Object.keys(emoji).length} custom emoji (metadata only)`);
   return { count: Object.keys(emoji).length };
 }
 

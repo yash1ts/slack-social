@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { resolveEmojiRow, getEmojiRow } from "../../../../../../cli/src/db/queries";
+import { unicodeForEmoji } from "@slack-social/shared";
+import {
+  getEmojiRow,
+  resolveEmojiRow,
+  upsertEmoji,
+} from "../../../../../../cli/src/db/queries";
+import { downloadEmoji } from "../../../../../../cli/src/slack/emoji-sync";
 import { getDb } from "@/lib/db";
 import { getSession, slackAuthHeaders } from "@/lib/auth";
 import { requireAuth } from "@/lib/require-auth";
@@ -13,6 +19,29 @@ function mimeForPath(path: string): string {
   return "image/png";
 }
 
+/** Serve an alias that points at a standard Unicode emoji as a tiny SVG (works as <img src>). */
+function unicodeSvgResponse(uni: string): NextResponse {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><text x="32" y="34" text-anchor="middle" dominant-baseline="central" font-size="52">${uni}</text></svg>`;
+  return new NextResponse(svg, {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=86400",
+    },
+  });
+}
+
+function aliasUnicode(db: ReturnType<typeof getDb>, start: string): string | null {
+  let name = start;
+  for (let i = 0; i < 6; i++) {
+    const uni = unicodeForEmoji(name);
+    if (uni) return uni;
+    const row = getEmojiRow(db, name);
+    if (!row?.alias_of) return null;
+    name = row.alias_of;
+  }
+  return null;
+}
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ name: string }> },
@@ -23,9 +52,16 @@ export async function GET(
   const { name: raw } = await ctx.params;
   const name = decodeURIComponent(raw).split("::")[0] ?? decodeURIComponent(raw);
   const db = getDb();
-  const row = resolveEmojiRow(db, name) ?? getEmojiRow(db, name);
+  const resolved = resolveEmojiRow(db, name);
+  const row = resolved ?? getEmojiRow(db, name);
   if (!row) {
-    return NextResponse.json({ error: "Emoji not found" }, { status: 404 });
+    // May be a pure unicode short-name requested as an image — rare.
+    const uni = unicodeForEmoji(name);
+    if (uni) return unicodeSvgResponse(uni);
+    return NextResponse.json(
+      { error: "Emoji not found" },
+      { status: 404, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   if (row.local_path) {
@@ -45,8 +81,38 @@ export async function GET(
   }
 
   if (row.url) {
+    const session = getSession();
+    // Cache to disk on first paint so later feeds are local.
+    const localPath = await downloadEmoji(
+      row.name,
+      row.url,
+      session?.accessToken,
+      session?.sessionCookie,
+    );
+    if (localPath) {
+      upsertEmoji(db, {
+        name: row.name,
+        url: row.url,
+        aliasOf: null,
+        localPath,
+        updatedAt: Date.now(),
+      });
+      try {
+        const file = Bun.file(localPath);
+        if (await file.exists()) {
+          return new NextResponse(file.stream(), {
+            headers: {
+              "Content-Type": mimeForPath(localPath),
+              "Cache-Control": "public, max-age=86400",
+            },
+          });
+        }
+      } catch {
+        /* fall through to proxy */
+      }
+    }
+
     try {
-      const session = getSession();
       const headers = session ? slackAuthHeaders(session) : {};
       let res = await fetch(row.url, { headers });
       if (!res.ok) {
@@ -67,5 +133,14 @@ export async function GET(
     }
   }
 
-  return NextResponse.json({ error: "Emoji has no image" }, { status: 404 });
+  // Alias → unicode (no custom image)
+  if (row.alias_of) {
+    const uni = aliasUnicode(db, row.alias_of);
+    if (uni) return unicodeSvgResponse(uni);
+  }
+
+  return NextResponse.json(
+    { error: "Emoji has no image" },
+    { status: 404, headers: { "Cache-Control": "no-store" } },
+  );
 }

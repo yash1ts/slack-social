@@ -14,6 +14,7 @@
     "serve": "bun run --filter @slack-social/cli serve",
     "dev:web": "bun run --filter @slack-social/web dev",
     "build": "bun run --filter @slack-social/cli build && bun run --filter @slack-social/web build",
+    "release:cli": "bash scripts/release-cli.sh",
     "slack-social": "bun packages/cli/src/index.ts"
   },
   "engines": {

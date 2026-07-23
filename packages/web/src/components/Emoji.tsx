@@ -2,9 +2,11 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -14,54 +16,37 @@ type EmojiCatalog = Record<string, string>;
 type EmojiAliases = Record<string, string>;
 
 type EmojiContextValue = {
+  /** Full catalog — loaded only when a consumer asks (e.g. emoji picker). */
   catalog: EmojiCatalog;
   aliases: EmojiAliases;
+  /** Bumps after background metadata sync so failed custom imgs can retry. */
+  metaEpoch: number;
+  ensureCatalog: () => void;
 };
 
-const EmojiContext = createContext<EmojiContextValue>({ catalog: {}, aliases: {} });
+const EmojiContext = createContext<EmojiContextValue>({
+  catalog: {},
+  aliases: {},
+  metaEpoch: 0,
+  ensureCatalog: () => {},
+});
 
-export function EmojiProvider({
-  initialCatalog,
-  initialAliases,
-  children,
-}: {
-  initialCatalog?: EmojiCatalog;
-  initialAliases?: EmojiAliases;
-  children: ReactNode;
-}) {
-  const [catalog, setCatalog] = useState<EmojiCatalog>(initialCatalog ?? {});
-  const [aliases, setAliases] = useState<EmojiAliases>(initialAliases ?? {});
+export function EmojiProvider({ children }: { children: ReactNode }) {
+  const [catalog, setCatalog] = useState<EmojiCatalog>({});
+  const [aliases, setAliases] = useState<EmojiAliases>({});
+  const [metaEpoch, setMetaEpoch] = useState(0);
+  const catalogRequested = useRef(false);
 
+  // Warm DB metadata in the background — never pull the full catalog into the feed.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const hasInitial = Object.keys(initialCatalog ?? {}).length > 0;
-        // Prefer a cheap catalog read when SSR already hydrated us; sync only when empty.
-        const res = await fetch(
-          hasInitial ? "/api/emoji/catalog" : "/api/emoji/sync",
-          hasInitial ? undefined : { method: "POST" },
-        );
-        if (!res.ok) {
-          if (hasInitial) return;
-          const fallback = await fetch("/api/emoji/catalog");
-          if (!fallback.ok) return;
-          const data = (await fallback.json()) as {
-            emoji?: EmojiCatalog;
-            aliases?: EmojiAliases;
-          };
-          if (cancelled) return;
-          if (data.emoji) setCatalog(data.emoji);
-          if (data.aliases) setAliases(data.aliases);
-          return;
-        }
-        const data = (await res.json()) as {
-          emoji?: EmojiCatalog;
-          aliases?: EmojiAliases;
-        };
-        if (cancelled) return;
-        if (data.emoji) setCatalog(data.emoji);
-        if (data.aliases) setAliases(data.aliases);
+        const res = await fetch("/api/emoji/sync", { method: "POST" });
+        if (cancelled || !res.ok) return;
+        const data = (await res.json()) as { synced?: boolean };
+        // Only bump when metadata changed so failed custom imgs can retry.
+        if (data.synced) setMetaEpoch((n) => n + 1);
       } catch {
         /* ignore */
       }
@@ -69,17 +54,42 @@ export function EmojiProvider({
     return () => {
       cancelled = true;
     };
-    // Intentionally mount-once: initial props seed state; refresh from API after hydrate.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const value = useMemo(() => ({ catalog, aliases }), [catalog, aliases]);
+  const ensureCatalog = useCallback(() => {
+    if (catalogRequested.current) return;
+    catalogRequested.current = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/emoji/catalog");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          emoji?: EmojiCatalog;
+          aliases?: EmojiAliases;
+        };
+        if (data.emoji) setCatalog(data.emoji);
+        if (data.aliases) setAliases(data.aliases);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, []);
+
+  const value = useMemo(
+    () => ({ catalog, aliases, metaEpoch, ensureCatalog }),
+    [catalog, aliases, metaEpoch, ensureCatalog],
+  );
 
   return <EmojiContext.Provider value={value}>{children}</EmojiContext.Provider>;
 }
 
+/** Full custom catalog — triggers a one-time fetch (for pickers). */
 export function useEmojiCatalog(): EmojiCatalog {
-  return useContext(EmojiContext).catalog;
+  const { catalog, ensureCatalog } = useContext(EmojiContext);
+  useEffect(() => {
+    ensureCatalog();
+  }, [ensureCatalog]);
+  return catalog;
 }
 
 export function useEmojiSrc(name: string): {
@@ -87,6 +97,7 @@ export function useEmojiSrc(name: string): {
   unicode: string | null;
 } {
   const { catalog, aliases } = useContext(EmojiContext);
+
   return useMemo(() => {
     const base = baseEmojiName(name);
     const aliasTarget = aliases[base];
@@ -95,12 +106,14 @@ export function useEmojiSrc(name: string): {
       (aliasTarget ? unicodeForEmoji(aliasTarget) : null) ??
       null;
 
+    // Prefer a known custom image (picker catalog / overrides) when present.
     const custom = catalog[base] ?? catalog[name] ?? null;
     if (custom) return { src: custom, unicode };
 
+    // Standard emoji: render unicode locally — no network, no catalog.
     if (unicode) return { src: null, unicode };
 
-    // Custom emoji that may still be syncing — try the API once.
+    // Unknown custom: fetch image on demand (browser lazy-loads + disk-caches).
     return { src: `/api/emoji/${encodeURIComponent(base)}`, unicode: null };
   }, [catalog, aliases, name]);
 }
@@ -117,14 +130,14 @@ export function SlackEmoji({
   className?: string;
   title?: string;
 }) {
+  const { metaEpoch } = useContext(EmojiContext);
   const { src, unicode } = useEmojiSrc(name);
   const [imgFailed, setImgFailed] = useState(false);
   const label = title ?? `:${name}:`;
 
-  // Reset failure state when the resolved source changes (e.g. after catalog sync)
   useEffect(() => {
     setImgFailed(false);
-  }, [src, name]);
+  }, [src, name, metaEpoch]);
 
   if (src && !imgFailed) {
     return (
@@ -138,6 +151,7 @@ export function SlackEmoji({
         className={`inline-block object-contain ${className}`}
         style={{ width: size, height: size }}
         loading="lazy"
+        decoding="async"
         onError={() => setImgFailed(true)}
       />
     );

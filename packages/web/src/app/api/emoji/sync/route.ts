@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAuthProvider, getSession, isLoggedIn } from "@/lib/auth";
-import { dbApi, getDb } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { countEmojis } from "../../../../../../cli/src/db/queries";
 import { ensureEmojiCatalog } from "../../../../../../cli/src/slack/emoji-sync";
 
 export const dynamic = "force-dynamic";
 
-/** Sync custom emoji via Slack emoji.list and return the catalog. */
+/** Sync custom emoji metadata via Slack emoji.list (images load on demand). */
 export async function POST(req: Request) {
   if (!isLoggedIn()) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -25,11 +26,8 @@ export async function POST(req: Request) {
       sessionCookie: session.sessionCookie,
       force,
     });
-    return NextResponse.json({
-      ...result,
-      emoji: dbApi.getEmojiCatalog(db),
-      aliases: dbApi.getEmojiAliases(db),
-    });
+    // Compact response — do not ship the full catalog on every sync.
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Emoji sync failed" },
@@ -51,18 +49,16 @@ export async function GET(req: Request) {
       const session = getSession();
       if (session?.accessToken) {
         const client = getAuthProvider().createClient();
-        await ensureEmojiCatalog(client, db, {
+        const result = await ensureEmojiCatalog(client, db, {
           token: session.accessToken,
           sessionCookie: session.sessionCookie,
         });
+        return NextResponse.json(result);
       }
     } catch (err) {
       console.warn("emoji sync on catalog get failed:", err);
     }
   }
 
-  return NextResponse.json({
-    emoji: dbApi.getEmojiCatalog(db),
-    aliases: dbApi.getEmojiAliases(db),
-  });
+  return NextResponse.json({ count: countEmojis(db), synced: false });
 }
