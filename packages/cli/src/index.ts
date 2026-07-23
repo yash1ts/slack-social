@@ -7,6 +7,11 @@ import { runServe } from "./commands/serve";
 import { openDb } from "./db/migrate";
 import { getFeed } from "./db/queries";
 
+// Trust OS CA store (corporate proxies / SSL inspection). Opt out with NODE_USE_SYSTEM_CA=0.
+if (process.env.NODE_USE_SYSTEM_CA === undefined) {
+  process.env.NODE_USE_SYSTEM_CA = "1";
+}
+
 const program = new Command();
 
 program
