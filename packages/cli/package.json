@@ -1,0 +1,26 @@
+{
+  "name": "@slack-social/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "slack-social": "./src/index.ts"
+  },
+  "scripts": {
+    "auth": "bun src/index.ts auth",
+    "sync": "bun src/index.ts sync",
+    "serve": "bun src/index.ts serve",
+    "start": "bun src/index.ts",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --outfile slack-social",
+    "build:bin": "bun build ./src/index.ts --compile --minify --outfile ./dist/slack-social"
+  },
+  "dependencies": {
+    "@slack-social/shared": "workspace:*",
+    "@slack/web-api": "^7.9.1",
+    "commander": "^13.1.0",
+    "open": "^10.1.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
