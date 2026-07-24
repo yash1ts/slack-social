@@ -1,5 +1,6 @@
 import {
   DELTA_INTERVAL_MS,
+  isDemoCredentials,
   type SyncProgress,
 } from "@slack-social/shared";
 import { readConfig, writeConfig } from "../config";
@@ -78,6 +79,14 @@ async function runDeltaOnce() {
     try {
       const provider = getAuthProvider();
       const creds = provider.getCredentials();
+      if (isDemoCredentials(creds)) {
+        current = {
+          ...idleProgress(),
+          status: "complete",
+          finishedAt: Date.now(),
+        };
+        return;
+      }
       const client = provider.createClient();
       const db = openDb();
       const startedAt = Date.now();
@@ -151,6 +160,25 @@ export function startSync(opts: StartSyncOptions = {}): SyncProgress & {
 
   const config = readConfig();
   const hasPosts = countPosts();
+
+  // Demo / trial sessions never call Slack — treat index as complete.
+  try {
+    const demoCreds = getAuthProvider().getCredentials();
+    if (isDemoCredentials(demoCreds)) {
+      const now = Date.now();
+      writeConfig({ ...readConfig(), lastSyncAt: now });
+      current = {
+        ...idleProgress(),
+        status: "complete",
+        finishedAt: now,
+        messagesIndexed: hasPosts ? 1 : 0,
+      };
+      return { ...getSyncStatus(), started: false };
+    }
+  } catch {
+    /* not logged in yet */
+  }
+
   if (
     opts.skipIfFresh &&
     !opts.force &&
@@ -269,6 +297,24 @@ export function startBackfill(): BackfillResult {
       hasMoreHistory: getSyncStatus().hasMoreHistory ?? false,
       messagesIndexed: current.messagesIndexed,
     };
+  }
+
+  try {
+    if (isDemoCredentials(getAuthProvider().getCredentials())) {
+      current = {
+        ...idleProgress(),
+        status: "complete",
+        finishedAt: Date.now(),
+      };
+      return {
+        ...getSyncStatus(),
+        started: false,
+        hasMoreHistory: false,
+        messagesIndexed: 0,
+      };
+    }
+  } catch {
+    /* not logged in */
   }
 
   const startedAt = Date.now();

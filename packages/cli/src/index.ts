@@ -4,6 +4,7 @@ import { authLogin, authLogout } from "./commands/auth";
 import { authImportSession } from "./commands/import-session";
 import { runSync } from "./commands/sync";
 import { runServe } from "./commands/serve";
+import { runDemo } from "./commands/demo";
 import { openDb } from "./db/migrate";
 import { getFeed } from "./db/queries";
 
@@ -67,6 +68,18 @@ program
       port: Number(opts.port ?? 3000),
       noSync: opts.sync === false,
       forceSync: Boolean(opts.force),
+    });
+  });
+
+program
+  .command("demo")
+  .description("Try slack-social with local dummy data (no Slack login)")
+  .option("-p, --port <port>", "Port", "3000")
+  .option("--no-serve", "Only seed demo data; do not start the UI")
+  .action(async (opts: { port?: string; serve?: boolean }) => {
+    await runDemo({
+      port: Number(opts.port ?? 3000),
+      serve: opts.serve !== false,
     });
   });
 

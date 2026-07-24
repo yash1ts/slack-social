@@ -21,6 +21,7 @@ Useful scripts:
 
 | Command | What it does |
 |---------|----------------|
+| `bun run slack-social demo` | Trial UI with seeded dummy data (no Slack) |
 | `bun run slack-social serve` | Run CLI + local web UI |
 | `bun run dev:web` | Next.js dev server only |
 | `bun run sync` | Index public channels into local SQLite |
