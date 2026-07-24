@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { WEB_OAUTH_REDIRECT_URI } from "@slack-social/shared";
 import { resolveClientCredentials, writeCredentials } from "@/lib/auth";
 import { finalizeLogin } from "../../../../../../cli/src/slack/post-login";
 
@@ -43,7 +42,7 @@ export async function GET(req: Request) {
     client_id: appCreds.clientId,
     client_secret: appCreds.clientSecret,
     code,
-    redirect_uri: WEB_OAUTH_REDIRECT_URI,
+    redirect_uri: `${origin}/api/auth/callback`,
   });
 
   const tokenRes = await fetch("https://slack.com/api/oauth.v2.access", {

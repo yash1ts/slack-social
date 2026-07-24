@@ -452,7 +452,7 @@ export async function runDemo(opts: {
   }
 
   await runServe({
-    port: opts.port ?? 3000,
+    port: opts.port,
     noSync: true,
   });
 }
