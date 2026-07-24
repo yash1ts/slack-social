@@ -1,5 +1,6 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import open from "open";
@@ -23,6 +24,31 @@ function standaloneServerAt(dir: string): string | null {
     if (existsSync(c)) return c;
   }
   return null;
+}
+
+function isPortFree(port: number, host = "127.0.0.1"): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.unref();
+    server.once("error", () => resolve(false));
+    server.listen(port, host, () => {
+      server.close((err) => resolve(!err));
+    });
+  });
+}
+
+/** Prefer `start`, then try the next ports if that one is already in use. */
+export async function findAvailablePort(start = 3000, maxTries = 40): Promise<number> {
+  const preferred = Number.isFinite(start) && start > 0 ? Math.floor(start) : 3000;
+  for (let i = 0; i < maxTries; i++) {
+    const port = preferred + i;
+    if (port > 65535) break;
+    if (await isPortFree(port)) return port;
+  }
+  throw new Error(
+    `No free port found starting at ${preferred} (tried ${maxTries} ports). ` +
+      `Pass --port <n> or free a local port.`,
+  );
 }
 
 /** Resolve web app dir for npm package, release zip, monorepo, or cwd. */
@@ -91,7 +117,7 @@ function startWebServer(webDir: string, port: number): ChildProcess {
   }
 
   console.log("Mode: development (next dev)");
-  return spawn("bun", ["--bun", "next", "dev", "-p", String(port)], {
+  return spawn("bun", ["--bun", "next", "dev", "-H", "127.0.0.1", "-p", String(port)], {
     cwd: webDir,
     stdio: "inherit",
     env: webServerEnv(port),
@@ -114,7 +140,14 @@ export async function runServe(opts: {
     console.log("Workspace indexing starts from the web UI after login (with progress).");
   }
 
-  const port = opts.port ?? 3000;
+  const preferred =
+    opts.port ??
+    (process.env.PORT && Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 3000);
+  const port = await findAvailablePort(preferred);
+  if (port !== preferred) {
+    console.log(`Port ${preferred} is busy — using ${port} instead.`);
+  }
+
   const webDir = findWebDir();
   const url = `http://localhost:${port}`;
 

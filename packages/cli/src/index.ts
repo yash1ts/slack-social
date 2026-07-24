@@ -18,7 +18,7 @@ const program = new Command();
 program
   .name("slack-social")
   .description("Index public Slack activity into a local Instagram-style feed")
-  .version("0.1.4");
+  .version("0.1.5");
 
 const auth = program.command("auth").description("Authenticate with Slack");
 
@@ -60,12 +60,12 @@ program
 program
   .command("serve")
   .description("Start the local Instagram-style web UI")
-  .option("-p, --port <port>", "Port", "3000")
+  .option("-p, --port <port>", "Preferred port (uses the next free port if busy)")
   .option("--no-sync", "Do not sync before serving")
   .option("-f, --force", "Force sync before serving", false)
   .action(async (opts: { port?: string; sync?: boolean; force?: boolean }) => {
     await runServe({
-      port: Number(opts.port ?? 3000),
+      port: opts.port != null ? Number(opts.port) : undefined,
       noSync: opts.sync === false,
       forceSync: Boolean(opts.force),
     });
@@ -74,11 +74,11 @@ program
 program
   .command("demo")
   .description("Try slack-social with local dummy data (no Slack login)")
-  .option("-p, --port <port>", "Port", "3000")
+  .option("-p, --port <port>", "Preferred port (uses the next free port if busy)")
   .option("--no-serve", "Only seed demo data; do not start the UI")
   .action(async (opts: { port?: string; serve?: boolean }) => {
     await runDemo({
-      port: Number(opts.port ?? 3000),
+      port: opts.port != null ? Number(opts.port) : undefined,
       serve: opts.serve !== false,
     });
   });
