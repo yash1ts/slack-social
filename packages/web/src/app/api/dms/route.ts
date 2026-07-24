@@ -5,7 +5,7 @@ import { listDmConversations } from "../../../../../cli/src/slack/dms";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   const denied = requireAuth();
   if (denied) return denied;
 
@@ -14,10 +14,17 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const limit = Number(searchParams.get("limit") ?? "12");
+  const offset = Number(searchParams.get("offset") ?? "0");
+
   try {
     const client = getAuthProvider().createClient();
-    const conversations = await listDmConversations(client, session.userId);
-    return NextResponse.json({ conversations });
+    const page = await listDmConversations(client, session.userId, {
+      limit: Number.isFinite(limit) ? limit : 12,
+      offset: Number.isFinite(offset) ? offset : 0,
+    });
+    return NextResponse.json(page);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to load DMs";
     const missing =
@@ -28,6 +35,8 @@ export async function GET() {
           ? "Missing DM scopes. Re-auth with an updated Slack app (im:read, im:history) or use a browser session."
           : message,
         conversations: [],
+        nextOffset: null,
+        hasMore: false,
       },
       { status: missing ? 403 : 500 },
     );

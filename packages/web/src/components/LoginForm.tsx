@@ -47,8 +47,9 @@ export function LoginForm({
         if (prev && list.some((s) => s.id === prev)) return prev;
         return list[0]?.id ?? null;
       });
+      if (data.error && !list.length) setLocalError(data.error);
     } catch {
-      setLocalError("Could not scan browser/Slack Local Storage");
+      setLocalError("Could not check browser sessions");
     } finally {
       setScanning(false);
     }
@@ -154,22 +155,22 @@ export function LoginForm({
             disabled={scanning || importPending}
             className="text-[11px] text-[var(--muted)] underline underline-offset-2 hover:text-white disabled:opacity-50"
           >
-            {scanning ? "Scanning…" : "Refresh"}
+            {scanning ? "Checking…" : "Refresh"}
           </button>
         </div>
         <p className="text-xs text-[var(--muted)]">
-          Sessions found in Chrome / Slack desktop Local Storage. Select one, then login.
+          Valid Slack sessions from Chrome / Slack desktop. Invalid tokens are hidden.
         </p>
 
         {scanning && !sessions.length ? (
           <p className="rounded-xl border border-[var(--border)] bg-[#141414] px-3 py-4 text-center text-xs text-[var(--muted)]">
-            Scanning Local Storage…
+            Checking sessions with Slack…
           </p>
         ) : null}
 
         {!scanning && sessions.length === 0 ? (
           <p className="rounded-xl border border-[var(--border)] bg-[#141414] px-3 py-4 text-center text-xs text-[var(--muted)]">
-            No sessions found. Open{" "}
+            No valid sessions found. Open{" "}
             <a
               href="https://app.slack.com"
               target="_blank"
@@ -177,8 +178,8 @@ export function LoginForm({
               className="text-white underline"
             >
               app.slack.com
-            </a>{" "}
-            once, then hit Refresh.
+            </a>
+            , load the workspace, then hit Refresh.
           </p>
         ) : null}
 

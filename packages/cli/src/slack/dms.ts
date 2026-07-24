@@ -36,11 +36,14 @@ type PeerInfo = {
 
 const SYSTEM_USER_IDS = new Set(["USLACKBOT", "USLACK"]);
 
-const INBOX_LIMIT = 50;
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 30;
+/** Extra candidates per page to cover bots / empty history skips. */
+const CANDIDATE_BUFFER = 8;
 const HISTORY_PREVIEW_SCAN = 15;
 const LIST_PAGE_SIZE = 200;
 const MAX_LIST_PAGES = 10;
-const HISTORY_CONCURRENCY = 8;
+const HISTORY_CONCURRENCY = 6;
 
 function isSystemUserId(userId: string | undefined): boolean {
   return Boolean(userId && SYSTEM_USER_IDS.has(userId));
@@ -179,11 +182,24 @@ function pickLatestUserMessage(messages: SlackHistoryMessage[]): SlackHistoryMes
   return null;
 }
 
-/** List IM + MPIM conversations with last-message preview (live from Slack). */
+export type ListDmConversationsResult = {
+  conversations: DmConversation[];
+  nextOffset: number | null;
+  hasMore: boolean;
+};
+
+/** List IM + MPIM conversations with last-message preview (live from Slack), paginated. */
 export async function listDmConversations(
   client: WebClient,
   viewerUserId: string,
-): Promise<DmConversation[]> {
+  opts: { limit?: number; offset?: number } = {},
+): Promise<ListDmConversationsResult> {
+  const limit = Math.min(
+    MAX_PAGE_SIZE,
+    Math.max(1, opts.limit ?? DEFAULT_PAGE_SIZE),
+  );
+  const offset = Math.max(0, opts.offset ?? 0);
+
   const channels = await listAllDmChannels(client);
   const userCache = new Map<string, PeerInfo>();
 
@@ -195,71 +211,94 @@ export async function listDmConversations(
   };
   channels.sort((a, b) => updatedMs(b) - updatedMs(a));
 
-  const candidates: SlackChannel[] = [];
-  for (const ch of channels) {
+  // Cheap prefilter only — bot/deleted checks happen during page enrichment.
+  const candidates = channels.filter((ch) => {
     if (isImChannel(ch) && ch.user) {
-      // Skip notes-to-self and bots/apps/deleted users
-      if (ch.user === viewerUserId) continue;
-      const peer = await resolvePeer(client, ch.user, userCache);
-      if (peer.isBot || peer.deleted) continue;
+      if (ch.user === viewerUserId) return false;
+      if (isSystemUserId(ch.user)) return false;
     }
-    candidates.push(ch);
-    if (candidates.length >= INBOX_LIMIT * 2) break;
-  }
-
-  const enriched = await mapPool(candidates, HISTORY_CONCURRENCY, async (ch) => {
-    if (!ch.id) return null;
-
-    let name = ch.name || "Direct message";
-    let avatarUrl: string | null = null;
-    let userId: string | undefined;
-    const kind: "im" | "mpim" = isMpimChannel(ch) ? "mpim" : "im";
-
-    if (kind === "im" && ch.user) {
-      userId = ch.user;
-      const peer = await resolvePeer(client, ch.user, userCache);
-      name = peer.displayName;
-      avatarUrl = peer.avatarUrl;
-    } else if (kind === "mpim") {
-      name = (ch.name || "Group DM").replace(/^mpdm-/, "").replace(/--$/, "");
-    }
-
-    let lastMessage: string | null = null;
-    let lastMessageAt: number | null = null;
-
-    try {
-      const hist = await client.conversations.history({
-        channel: ch.id,
-        limit: HISTORY_PREVIEW_SCAN,
-      });
-      const msg = pickLatestUserMessage((hist.messages ?? []) as SlackHistoryMessage[]);
-      if (!msg?.ts) return null;
-
-      lastMessageAt = slackTsToMs(msg.ts);
-      lastMessage = messagePreview(msg, viewerUserId);
-    } catch {
-      // No history access / empty / invalid — skip from inbox
-      return null;
-    }
-
-    if (!lastMessageAt) return null;
-
-    const row: DmConversation = {
-      id: ch.id,
-      kind,
-      name,
-      avatarUrl,
-      lastMessage,
-      lastMessageAt,
-    };
-    if (userId) row.userId = userId;
-    return row;
+    return true;
   });
 
-  const conversations = enriched.filter((c): c is DmConversation => c != null);
-  return conversations
-    .sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0))
-    .slice(0, INBOX_LIMIT);
+  // Walk candidates from offset, enriching only a window until we fill the page.
+  const conversations: DmConversation[] = [];
+  let cursor = offset;
+
+  while (conversations.length < limit && cursor < candidates.length) {
+    const batch = candidates.slice(
+      cursor,
+      cursor + (limit - conversations.length) + CANDIDATE_BUFFER,
+    );
+    if (!batch.length) break;
+
+    const enriched = await mapPool(batch, HISTORY_CONCURRENCY, async (ch) => {
+      if (!ch.id) return null;
+
+      let name = ch.name || "Direct message";
+      let avatarUrl: string | null = null;
+      let userId: string | undefined;
+      const kind: "im" | "mpim" = isMpimChannel(ch) ? "mpim" : "im";
+
+      if (kind === "im" && ch.user) {
+        userId = ch.user;
+        const peer = await resolvePeer(client, ch.user, userCache);
+        if (peer.isBot || peer.deleted) return null;
+        name = peer.displayName;
+        avatarUrl = peer.avatarUrl;
+      } else if (kind === "mpim") {
+        name = (ch.name || "Group DM").replace(/^mpdm-/, "").replace(/--$/, "");
+      }
+
+      let lastMessage: string | null = null;
+      let lastMessageAt: number | null = null;
+
+      try {
+        const hist = await client.conversations.history({
+          channel: ch.id,
+          limit: HISTORY_PREVIEW_SCAN,
+        });
+        const msg = pickLatestUserMessage((hist.messages ?? []) as SlackHistoryMessage[]);
+        if (!msg?.ts) return null;
+
+        lastMessageAt = slackTsToMs(msg.ts);
+        lastMessage = messagePreview(msg, viewerUserId);
+      } catch {
+        // No history access / empty / invalid — skip from inbox
+        return null;
+      }
+
+      if (!lastMessageAt) return null;
+
+      const row: DmConversation = {
+        id: ch.id,
+        kind,
+        name,
+        avatarUrl,
+        lastMessage,
+        lastMessageAt,
+      };
+      if (userId) row.userId = userId;
+      return row;
+    });
+
+    for (let i = 0; i < batch.length; i++) {
+      cursor += 1;
+      const row = enriched[i];
+      if (row) {
+        conversations.push(row);
+        if (conversations.length >= limit) break;
+      }
+    }
+  }
+
+  conversations.sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0));
+
+  const hasMore = cursor < candidates.length;
+  return {
+    conversations,
+    nextOffset: hasMore ? cursor : null,
+    hasMore,
+  };
 }
 
 export async function getDmThread(

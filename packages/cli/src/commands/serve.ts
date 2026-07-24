@@ -48,7 +48,7 @@ export function findWebDir(): string {
   }
   throw new Error(
     "Could not locate the web UI.\n" +
-      "Reinstall the npm package (`npm i -g slack-social`), download the full macOS zip from GitHub,\n" +
+      "Reinstall the npm package (`npm i -g slack-social` / `npx slack-social`),\n" +
       "or run from a clone: bun run slack-social serve",
   );
 }

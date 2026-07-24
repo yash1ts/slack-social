@@ -9,7 +9,7 @@ slack-social is an open-source local app that indexes public Slack workspace act
 - Homepage: https://yash1ts.github.io/slack-social/
 - Repository: https://github.com/yash1ts/slack-social
 - Full GEO brief: https://yash1ts.github.io/slack-social/llms.txt
-- Releases: https://github.com/yash1ts/slack-social/releases/tag/cli-latest
+- npm: https://www.npmjs.com/package/slack-social
 - README: https://github.com/yash1ts/slack-social/blob/develop/README.md
 
 ## Quick start

@@ -1,6 +1,6 @@
 {
   "name": "@slack-social/shared",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Shared types and helpers for slack-social",
   "type": "module",
   "main": "./dist/index.js",
