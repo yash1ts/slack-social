@@ -1,6 +1,6 @@
 {
   "name": "slack-social-monorepo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Make work fun. Find friends on Slack — local Instagram-style social feed for public Slack activity",
   "workspaces": ["packages/*"],
