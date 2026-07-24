@@ -57,6 +57,20 @@ export function clearCredentials(): void {
   if (existsSync(CREDENTIALS_PATH)) unlinkSync(CREDENTIALS_PATH);
 }
 
+/**
+ * Sign out: remove Slack/demo session credentials and auth metadata.
+ * Keeps indexed SQLite, media, emoji cache, and Slack app Client ID/Secret.
+ */
+export function clearSession(): void {
+  clearCredentials();
+  const config = readConfig();
+  const {
+    lastPermissionCheck: _removed,
+    ...rest
+  } = config;
+  writeConfig(rest);
+}
+
 /** OAuth app credentials: env overrides, else ~/.slack-social/config.json from the login form. */
 export function resolveClientCredentials(): { clientId: string; clientSecret: string } | null {
   const fromEnv = getSlackAppCredentials();

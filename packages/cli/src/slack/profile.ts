@@ -204,7 +204,19 @@ export async function fetchAndCacheSlackProfile(
       isBot: Boolean(u.is_bot),
     };
   } catch (err) {
-    console.warn("fetchAndCacheSlackProfile failed:", err);
+    const code =
+      err && typeof err === "object" && "data" in err
+        ? String((err as { data?: { error?: string } }).data?.error ?? "")
+        : "";
+    if (code === "invalid_auth" || code === "token_revoked" || code === "not_authed") {
+      // Common for expired browser sessions (xoxc) — UI falls back to SQLite.
+      console.warn(
+        "Slack session expired or invalid while loading a profile. " +
+          "Re-login in the UI, or run: slack-social auth",
+      );
+    } else {
+      console.warn("fetchAndCacheSlackProfile failed:", err);
+    }
     return null;
   }
 }

@@ -1,5 +1,6 @@
 import {
   clearCredentials,
+  clearSession,
   readConfig,
   readCredentials,
   resolveClientCredentials,
@@ -25,6 +26,7 @@ export function getSession(): Credentials | null {
 
 export {
   clearCredentials,
+  clearSession,
   readConfig,
   readCredentials,
   resolveClientCredentials,
