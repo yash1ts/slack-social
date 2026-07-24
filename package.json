@@ -16,7 +16,8 @@
     "build": "bun run --filter @slack-social/shared build && bun run --filter slack-social build && bun run --filter @slack-social/web build",
     "build:npm": "bash scripts/build-npm.sh",
     "publish:npm": "bash scripts/publish-npm.sh",
-    "slack-social": "bun packages/cli/src/index.ts"
+    "slack-social": "bun packages/cli/src/index.ts",
+    "test": "bun test packages/shared/src"
   },
   "engines": {
     "bun": ">=1.1.0"
