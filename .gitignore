@@ -10,3 +10,8 @@ dist/
 *.sqlite-journal
 packages/web/out/
 packages/cli/dist/
+packages/cli/web/
+packages/cli/LICENSE
+packages/shared/dist/
+packages/shared/LICENSE
+*.tgz

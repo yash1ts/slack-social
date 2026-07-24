@@ -25,11 +25,15 @@ function standaloneServerAt(dir: string): string | null {
   return null;
 }
 
-/** Resolve web app dir for monorepo, release zip, or cwd. */
+/** Resolve web app dir for npm package, release zip, monorepo, or cwd. */
 export function findWebDir(): string {
   const here = fileURLToPath(new URL(".", import.meta.url));
   const execDir = dirname(process.execPath);
+  const pkgRoot = join(import.meta.dir, "..");
   const candidates = [
+    // npm package: dist/cli.js → ../web (Next standalone)
+    join(import.meta.dir, "../web"),
+    join(pkgRoot, "web"),
     // Release layout: binary next to ./web (standalone or package)
     join(execDir, "web"),
     // Release layout: extracted zip root as cwd
@@ -44,7 +48,7 @@ export function findWebDir(): string {
   }
   throw new Error(
     "Could not locate the web UI.\n" +
-      "Download the full macOS zip from the GitHub release (not just the bare binary),\n" +
+      "Reinstall the npm package (`npm i -g slack-social`), download the full macOS zip from GitHub,\n" +
       "or run from a clone: bun run slack-social serve",
   );
 }

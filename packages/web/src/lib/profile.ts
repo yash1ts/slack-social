@@ -9,7 +9,13 @@ import { fetchAndCacheSlackProfile } from "../../../cli/src/slack/profile";
  */
 export async function resolveUserProfile(
   userId: string,
-  extras?: { statusText?: string | null; statusEmoji?: string | null },
+  extras?: {
+    statusText?: string | null;
+    statusEmoji?: string | null;
+    email?: string | null;
+    about?: string | null;
+    phone?: string | null;
+  },
 ): Promise<UserProfile | null> {
   const db = getDb();
 
@@ -21,6 +27,9 @@ export async function resolveUserProfile(
       extras = {
         statusText: live.statusText,
         statusEmoji: live.statusEmoji,
+        email: live.email,
+        about: live.about,
+        phone: live.phone,
       };
     }
   } catch {
@@ -38,6 +47,9 @@ export async function resolveUserProfile(
         realName: null,
         avatarUrl: null,
         title: null,
+        email: extras?.email ?? null,
+        about: extras?.about ?? null,
+        phone: extras?.phone ?? null,
         statusText: extras?.statusText ?? null,
         statusEmoji: extras?.statusEmoji ?? null,
         reactionsEarned: 0,
@@ -52,6 +64,9 @@ export async function resolveUserProfile(
 
   return {
     ...profile,
+    email: extras?.email ?? profile.email ?? null,
+    about: extras?.about ?? profile.about ?? null,
+    phone: extras?.phone ?? profile.phone ?? null,
     statusText: extras?.statusText ?? profile.statusText ?? null,
     statusEmoji: extras?.statusEmoji ?? profile.statusEmoji ?? null,
   };

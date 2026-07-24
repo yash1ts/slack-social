@@ -1,17 +1,49 @@
 {
   "name": "@slack-social/shared",
   "version": "0.1.0",
-  "private": true,
+  "description": "Shared types and helpers for slack-social",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
-    "gen:emoji": "bun ./scripts/gen-emoji-map.ts"
+    "build": "tsc -p tsconfig.json",
+    "gen:emoji": "bun ./scripts/gen-emoji-map.ts",
+    "prepack": "bun run build",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "slack",
+    "slack-social"
+  ],
+  "author": "Yashwant Sandey",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yash1ts/slack-social.git",
+    "directory": "packages/shared"
+  },
+  "homepage": "https://github.com/yash1ts/slack-social/tree/master/packages/shared",
+  "bugs": {
+    "url": "https://github.com/yash1ts/slack-social/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
-    "emoji-datasource": "^16.0.0"
+    "@types/node": "^22.15.21",
+    "emoji-datasource": "^16.0.0",
+    "typescript": "^5.8.3"
   }
 }

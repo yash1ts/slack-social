@@ -1,26 +1,32 @@
 {
-  "name": "slack-social",
+  "name": "slack-social-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Index public Slack activity into a local Instagram-style feed",
+  "description": "Make work fun. Find friends on Slack — local Instagram-style social feed for public Slack activity",
   "workspaces": ["packages/*"],
   "packageManager": "bun@1.3.11",
   "bin": {
-    "slack-social": "./packages/cli/src/index.ts"
+    "slack-social": "./packages/cli/bin/slack-social.js"
   },
   "scripts": {
-    "auth": "bun run --filter @slack-social/cli auth",
-    "sync": "bun run --filter @slack-social/cli sync",
-    "serve": "bun run --filter @slack-social/cli serve",
+    "auth": "bun run --filter slack-social auth",
+    "sync": "bun run --filter slack-social sync",
+    "serve": "bun run --filter slack-social serve",
     "dev:web": "bun run --filter @slack-social/web dev",
-    "build": "bun run --filter @slack-social/cli build && bun run --filter @slack-social/web build",
+    "build": "bun run --filter @slack-social/shared build && bun run --filter slack-social build && bun run --filter @slack-social/web build",
+    "build:npm": "bash scripts/build-npm.sh",
+    "publish:npm": "bash scripts/publish-npm.sh",
     "release:cli": "bash scripts/release-cli.sh",
     "slack-social": "bun packages/cli/src/index.ts"
   },
   "engines": {
     "bun": ">=1.1.0"
   },
-  "license": "MIT",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yash1ts/slack-social.git"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^22.15.21",

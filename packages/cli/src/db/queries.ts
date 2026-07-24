@@ -4,6 +4,7 @@ import {
   computeScore,
   extractSlackChannelIds,
   extractSlackUserIds,
+  skipFeedChannelSql,
   UNREAD_SCORE_FLOOR,
 } from "@slack-social/shared";
 import type {
@@ -17,6 +18,7 @@ import type {
 
 const LOCAL_VIEWER = "local";
 const LAST_VIEWED_KEY = "last_viewed_at";
+const SKIP_CHANNEL_SQL = skipFeedChannelSql("c");
 
 export type ChannelSyncRow = {
   channel_id: string;
@@ -142,17 +144,23 @@ export function upsertUser(
     realName?: string | null;
     avatarUrl?: string | null;
     title?: string | null;
+    email?: string | null;
+    about?: string | null;
+    phone?: string | null;
     isBot?: boolean;
   },
 ): void {
   db.run(
-    `INSERT INTO users (id, display_name, real_name, avatar_url, title, is_bot, reactions_earned, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+    `INSERT INTO users (id, display_name, real_name, avatar_url, title, email, about, phone, is_bot, reactions_earned, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
      ON CONFLICT(id) DO UPDATE SET
        display_name = excluded.display_name,
        real_name = excluded.real_name,
        avatar_url = excluded.avatar_url,
        title = excluded.title,
+       email = COALESCE(excluded.email, users.email),
+       about = COALESCE(excluded.about, users.about),
+       phone = COALESCE(excluded.phone, users.phone),
        is_bot = excluded.is_bot,
        updated_at = excluded.updated_at`,
     [
@@ -161,6 +169,9 @@ export function upsertUser(
       user.realName ?? null,
       user.avatarUrl ?? null,
       user.title ?? null,
+      user.email ?? null,
+      user.about ?? null,
+      user.phone ?? null,
       user.isBot ? 1 : 0,
       Date.now(),
     ],
@@ -509,10 +520,12 @@ export function countUnreadHighEngagement(
   const row = db
     .query(
       `SELECT COUNT(*) as c FROM posts p
+       JOIN channels c ON c.id = p.channel_id
        LEFT JOIN users u ON u.id = p.user_id
        WHERE (p.thread_ts IS NULL OR p.thread_ts = p.ts)
          AND p.user_id IS NOT NULL
          AND COALESCE(u.is_bot, 0) = 0
+         AND (${SKIP_CHANNEL_SQL})
          AND p.posted_at > ?
          AND p.score >= ?`,
     )
@@ -837,6 +850,7 @@ export function getFeed(
        WHERE (p.thread_ts IS NULL OR p.thread_ts = p.ts)
          AND p.user_id IS NOT NULL
          AND COALESCE(u.is_bot, 0) = 0
+         AND (${SKIP_CHANNEL_SQL})
        ${tagFilter}
        ORDER BY ${order}
        LIMIT ? OFFSET ?`,
@@ -914,6 +928,7 @@ export function getExplore(db: Database, limit = 60): FeedPost[] {
          AND (p.has_media = 1 OR p.score > 0)
          AND p.user_id IS NOT NULL
          AND COALESCE(u.is_bot, 0) = 0
+         AND (${SKIP_CHANNEL_SQL})
        ORDER BY p.has_media DESC, p.score DESC
        LIMIT ?`,
     )
@@ -1039,7 +1054,7 @@ export function getUserProfile(db: Database, userId: string): UserProfile | null
   const u = db
     .query(
       `SELECT id, display_name as displayName, real_name as realName, avatar_url as avatarUrl,
-              title, reactions_earned as reactionsEarned
+              title, email, about, phone, reactions_earned as reactionsEarned
        FROM users WHERE id = ?`,
     )
     .get(userId) as
@@ -1049,6 +1064,9 @@ export function getUserProfile(db: Database, userId: string): UserProfile | null
         realName: string | null;
         avatarUrl: string | null;
         title: string | null;
+        email: string | null;
+        about: string | null;
+        phone: string | null;
         reactionsEarned: number;
       }
     | null;
@@ -1080,6 +1098,9 @@ export function getUserProfile(db: Database, userId: string): UserProfile | null
 
   return {
     ...u,
+    email: u.email ?? null,
+    about: u.about ?? null,
+    phone: u.phone ?? null,
     followerCount,
     followingCount,
     isFollowing,
@@ -1148,6 +1169,7 @@ export function searchPosts(db: Database, q: string, limit = 40): FeedPost[] {
        WHERE (p.thread_ts IS NULL OR p.thread_ts = p.ts)
          AND p.user_id IS NOT NULL
          AND COALESCE(u.is_bot, 0) = 0
+         AND (${SKIP_CHANNEL_SQL})
          AND (p.text LIKE ? OR u.display_name LIKE ? OR c.name LIKE ?)
        ORDER BY p.score DESC
        LIMIT ?`,

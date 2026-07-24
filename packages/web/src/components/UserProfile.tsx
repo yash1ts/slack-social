@@ -1,9 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import type { FeedPost, UserProfile } from "@slack-social/shared";
 import { PostCard } from "./PostCard";
+
+function ProfileDetail({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+        {label}
+      </dt>
+      <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm text-[var(--text)]">
+        {children}
+      </dd>
+    </div>
+  );
+}
 
 export function UserProfileView({
   profile,
@@ -28,6 +41,8 @@ export function UserProfileView({
     setFollowing(!following);
     startTransition(() => router.refresh());
   }
+
+  const hasDetails = Boolean(profile.about || profile.email || profile.phone);
 
   return (
     <div>
@@ -81,6 +96,34 @@ export function UserProfileView({
           ) : null}
         </div>
       </div>
+
+      {hasDetails ? (
+        <dl className="space-y-3 border-t border-[var(--border)] px-4 py-4">
+          {profile.about ? (
+            <ProfileDetail label="About">{profile.about}</ProfileDetail>
+          ) : null}
+          {profile.email ? (
+            <ProfileDetail label="Email">
+              <a
+                href={`mailto:${profile.email}`}
+                className="text-[#1d9bd1] hover:underline"
+              >
+                {profile.email}
+              </a>
+            </ProfileDetail>
+          ) : null}
+          {profile.phone ? (
+            <ProfileDetail label="Phone">
+              <a
+                href={`tel:${profile.phone.replace(/\s+/g, "")}`}
+                className="text-[#1d9bd1] hover:underline"
+              >
+                {profile.phone}
+              </a>
+            </ProfileDetail>
+          ) : null}
+        </dl>
+      ) : null}
 
       {posts.length === 0 ? (
         <div className="px-4 py-10 text-center text-sm text-[var(--muted)]">
