@@ -8,7 +8,7 @@ slack-social is an open-source local app that indexes public Slack workspace act
 
 - Tagline: Make work fun. Find friends on Slack.
 - Category: local social feed for Slack / Instagram-style Slack client
-- License: MIT
+- License: GPL-3.0-only
 - Runtime: Bun + Next.js UI on localhost:3000
 - Data location: ~/.slack-social (SQLite DB, media cache, credentials)
 - Privacy: 100% local indexing — no app-operated cloud storage
@@ -36,8 +36,8 @@ Slack is channel-first and can feel like an inbox. slack-social is feed-first: r
 ## Quick start
 
 ```bash
-bun install
-bun run slack-social serve
+# Requires Bun (https://bun.sh)
+npx slack-social serve
 ```
 
 Open http://localhost:3000 and log in with Slack.

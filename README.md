@@ -26,7 +26,7 @@ Work feels less like inbox zero — and more like hanging out.
 <p>
   <a href="https://yash1ts.github.io/slack-social/"><strong>Live showcase →</strong></a>
   ·
-  <a href="https://github.com/yash1ts/slack-social/releases/tag/cli-latest">Download CLI</a>
+  <a href="https://www.npmjs.com/package/slack-social">npm</a>
 </p>
 
 <br />
@@ -68,9 +68,10 @@ Work feels less like inbox zero — and more like hanging out.
 
 ### Ready to hang?
 
+Requires [Bun](https://bun.sh).
+
 ```bash
-bun install
-bun run slack-social serve
+npx slack-social serve
 ```
 
 Open [localhost:3000](http://localhost:3000) → log in with Slack → **start scrolling.**
@@ -90,14 +91,32 @@ Teams and communities that live in Slack and want a friendlier way to discover p
 
 ---
 
+### Contribute
+
+This is an open-source project — **you’re invited to build with us.**
+
+Fork the repo, check it out, run it locally, and open a PR. Docs, bugs, UI polish, and bigger ideas all help.
+
+```bash
+git clone https://github.com/yash1ts/slack-social.git
+cd slack-social
+bun install
+bun run slack-social serve
+```
+
+Read **[CONTRIBUTING.md](./CONTRIBUTING.md)** for setup, project layout, and how we review PRs.  
+By contributing, you agree your work is licensed under **[GPL-3.0](./LICENSE)**.
+
+---
+
 <div align="center">
 
 <p>
   <img src="https://img.shields.io/badge/Make_work_fun-f77737?style=flat-square" alt="Make work fun" />
   <img src="https://img.shields.io/badge/Find_friends_on_Slack-e1306c?style=flat-square" alt="Find friends on Slack" />
-  <img src="https://img.shields.io/badge/MIT-c13584?style=flat-square" alt="MIT" />
+  <img src="https://img.shields.io/badge/GPL--3.0-c13584?style=flat-square" alt="GPL-3.0" />
 </p>
 
-<sub>Open source · Built for humans who live in Slack · <a href="llms.txt">llms.txt</a> · <a href="https://yash1ts.github.io/slack-social/">Showcase</a></sub>
+<sub>Open source · GPLv3 · Built for humans who live in Slack · <a href="CONTRIBUTING.md">Contribute</a> · <a href="llms.txt">llms.txt</a> · <a href="https://yash1ts.github.io/slack-social/">Showcase</a></sub>
 
 </div>

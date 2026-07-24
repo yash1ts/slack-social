@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest an idea for slack-social
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas welcome. Keep the product local-first — no shipping workspace data to third-party clouds.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What itch are you scratching?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional — other approaches you’ve thought about
+    validations:
+      required: false

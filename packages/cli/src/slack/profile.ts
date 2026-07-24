@@ -148,7 +148,8 @@ export async function fetchAndCacheSlackProfile(
     let statusEmoji = nonempty(u.profile?.status_emoji);
     let email = nonempty(u.profile?.email);
     let phone = nonempty(u.profile?.phone);
-    let fields = (u.profile?.fields ?? undefined) as SlackProfileFields | undefined;
+    let fields = ((u.profile as { fields?: SlackProfileFields } | undefined)?.fields ??
+      undefined) as SlackProfileFields | undefined;
 
     try {
       const profileRes = await client.users.profile.get({ user: userId });

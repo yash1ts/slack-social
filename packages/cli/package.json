@@ -1,26 +1,64 @@
 {
-  "name": "@slack-social/cli",
+  "name": "slack-social",
   "version": "0.1.0",
-  "private": true,
+  "description": "Make work fun. Find friends on Slack — local Instagram-style social feed for public Slack activity",
   "type": "module",
   "bin": {
-    "slack-social": "./src/index.ts"
+    "slack-social": "./bin/slack-social.js"
   },
+  "files": [
+    "bin",
+    "dist",
+    "web",
+    "scripts/restore-web-modules.js",
+    "scripts/check-web-bundle.js",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "auth": "bun src/index.ts auth",
     "sync": "bun src/index.ts sync",
     "serve": "bun src/index.ts serve",
     "start": "bun src/index.ts",
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --outfile slack-social",
-    "build:bin": "bun build ./src/index.ts --compile --minify --outfile ./dist/slack-social"
+    "build": "bun build ./src/index.ts --outfile ./dist/cli.js --target bun --minify --external @slack/web-api --external commander --external open",
+    "build:bin": "bun build ./src/index.ts --compile --minify --outfile ./dist/slack-social",
+    "postinstall": "node ./scripts/restore-web-modules.js",
+    "prepack": "bun run build && node ./scripts/check-web-bundle.js",
+    "prepublishOnly": "bun run build && node ./scripts/check-web-bundle.js"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "keywords": [
+    "slack",
+    "social",
+    "feed",
+    "cli",
+    "local-first",
+    "instagram",
+    "bun"
+  ],
+  "author": "Yashwant Sandey",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yash1ts/slack-social.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://yash1ts.github.io/slack-social/",
+  "bugs": {
+    "url": "https://github.com/yash1ts/slack-social/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
-    "@slack-social/shared": "workspace:*",
     "@slack/web-api": "^7.9.1",
     "commander": "^13.1.0",
     "open": "^10.1.2"
   },
   "devDependencies": {
+    "@slack-social/shared": "workspace:*",
     "@types/bun": "latest"
   }
 }

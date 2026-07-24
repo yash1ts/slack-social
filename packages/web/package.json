@@ -2,14 +2,15 @@
   "name": "@slack-social/web",
   "version": "0.1.0",
   "private": true,
+  "license": "GPL-3.0-only",
   "scripts": {
     "dev": "bun --bun next dev -p 3000",
     "build": "bun --bun next build",
     "start": "bun --bun next start -p 3000"
   },
   "dependencies": {
-    "@slack-social/cli": "workspace:*",
     "@slack-social/shared": "workspace:*",
+    "slack-social": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^0.511.0",
     "next": "^15.3.2",

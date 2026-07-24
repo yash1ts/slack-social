@@ -50,7 +50,7 @@
         "url": "https://yash1ts.github.io/slack-social/",
         "downloadUrl": "https://github.com/yash1ts/slack-social",
         "softwareVersion": "0.1.0",
-        "license": "https://opensource.org/licenses/MIT",
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "author": {
           "@type": "Person",
           "name": "yash1ts",
@@ -114,7 +114,7 @@
             "name": "How do I install slack-social?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Install Bun, clone the GitHub repo, run bun install, then bun run slack-social serve. Open http://localhost:3000 and log in with Slack."
+              "text": "Install Bun, then run npx slack-social serve. Open http://localhost:3000 and log in with Slack."
             }
           }
         ]
@@ -127,13 +127,13 @@
         "step": [
           {
             "@type": "HowToStep",
-            "name": "Install dependencies",
-            "text": "Run bun install in the slack-social repository."
+            "name": "Install Bun",
+            "text": "Install Bun from https://bun.sh (required for bun:sqlite and the local UI)."
           },
           {
             "@type": "HowToStep",
             "name": "Start the app",
-            "text": "Run bun run slack-social serve to launch the local UI."
+            "text": "Run npx slack-social serve to launch the local UI."
           },
           {
             "@type": "HowToStep",
@@ -510,12 +510,13 @@
         <div class="cta-row">
           <a class="btn btn-primary" href="https://github.com/yash1ts/slack-social">Star on GitHub</a>
           <a class="btn btn-ghost" href="#install">Try it locally</a>
+          <a class="btn btn-ghost" href="https://github.com/yash1ts/slack-social/blob/master/CONTRIBUTING.md">Contribute</a>
         </div>
         <div class="pills" aria-label="Highlights">
           <span class="pill">Scroll the vibes</span>
           <span class="pill">Not the channels</span>
           <span class="pill">100% local</span>
-          <span class="pill">Open source · MIT</span>
+          <span class="pill">Open source · GPLv3</span>
         </div>
 
         <div class="phones" aria-label="Product screenshots">
@@ -606,12 +607,27 @@
         <p class="section-lead">One command to start. Login once. Scroll forever.</p>
         <div class="install">
           <p>Requires <a href="https://bun.sh" style="color:#e1306c;text-decoration:underline">Bun</a>.</p>
-          <pre><code>bun install
-bun run slack-social serve</code></pre>
+          <pre><code>npx slack-social serve</code></pre>
           <p style="margin-top:1rem;color:var(--muted)">Open <a href="http://localhost:3000" style="color:#f77737;text-decoration:underline">localhost:3000</a> → log in with Slack → start scrolling.</p>
           <div class="cta-row" style="justify-content:flex-start;margin-top:1.25rem">
-            <a class="btn btn-primary" href="https://github.com/yash1ts/slack-social">Open the repo</a>
-            <a class="btn btn-ghost" href="https://github.com/yash1ts/slack-social/releases/tag/cli-latest">Download CLI</a>
+            <a class="btn btn-primary" href="https://www.npmjs.com/package/slack-social">npm</a>
+            <a class="btn btn-ghost" href="https://github.com/yash1ts/slack-social">Open the repo</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="contribute" aria-labelledby="contribute-title">
+        <h2 id="contribute-title">Build with us</h2>
+        <p class="section-lead">Open source under GPLv3. Fork it, check it out, ship a PR.</p>
+        <div class="install">
+          <pre><code>git clone https://github.com/yash1ts/slack-social.git
+cd slack-social
+bun install
+bun run slack-social serve</code></pre>
+          <p style="margin-top:1rem;color:var(--muted)">Docs, bugs, UI polish, feed ideas — all welcome. See the contributing guide for how we work.</p>
+          <div class="cta-row" style="justify-content:flex-start;margin-top:1.25rem">
+            <a class="btn btn-primary" href="https://github.com/yash1ts/slack-social/blob/master/CONTRIBUTING.md">Contributing guide</a>
+            <a class="btn btn-ghost" href="https://github.com/yash1ts/slack-social/issues">Open an issue</a>
           </div>
         </div>
       </section>
@@ -622,7 +638,8 @@ bun run slack-social serve</code></pre>
       <p>
         <a href="llms.txt">llms.txt</a> ·
         <a href="https://github.com/yash1ts/slack-social">GitHub</a> ·
-        MIT
+        <a href="https://github.com/yash1ts/slack-social/blob/master/CONTRIBUTING.md">Contribute</a> ·
+        GPLv3
       </p>
     </footer>
   </div>

@@ -244,19 +244,20 @@ export async function listDmConversations(
 
     if (!lastMessageAt) return null;
 
-    return {
+    const row: DmConversation = {
       id: ch.id,
       kind,
       name,
       avatarUrl,
-      userId,
       lastMessage,
       lastMessageAt,
-    } satisfies DmConversation;
+    };
+    if (userId) row.userId = userId;
+    return row;
   });
 
-  return enriched
-    .filter((c): c is DmConversation => c != null)
+  const conversations = enriched.filter((c): c is DmConversation => c != null);
+  return conversations
     .sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0))
     .slice(0, INBOX_LIMIT);
 }
