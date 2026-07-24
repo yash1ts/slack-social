@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { DmConversation, DmMessage } from "@slack-social/shared";
 import { SlackText } from "./SlackText";
+import { DmAvatar } from "./DmAvatar";
 import { timeAgo } from "@/lib/utils";
 
 export function DmThread({ channelId }: { channelId: string }) {
@@ -89,15 +90,7 @@ export function DmThread({ channelId }: { channelId: string }) {
         <Link href="/messages" className="text-sm text-[var(--muted)]">
           ←
         </Link>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={
-            conversation?.avatarUrl ||
-            `https://api.dicebear.com/9.x/initials/svg?seed=${conversation?.name ?? "dm"}`
-          }
-          alt=""
-          className="h-8 w-8 rounded-full object-cover"
-        />
+        {conversation ? <DmAvatar conversation={conversation} size="sm" /> : null}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-sm font-semibold">{conversation?.name ?? "Chat"}</h1>
           {conversation?.userId ? (

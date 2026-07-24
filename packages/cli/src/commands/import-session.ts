@@ -1,17 +1,24 @@
-import { findBrowserSessions, importBrowserSession, verifyAndStoreSession } from "../slack/extract-session";
+import {
+  importBrowserSession,
+  listValidBrowserSessionOptions,
+  verifyAndStoreSession,
+} from "../slack/extract-session";
 
 export async function authImportSession(opts: { launchChrome?: boolean; listOnly?: boolean } = {}): Promise<void> {
   if (opts.listOnly) {
-    const sessions = findBrowserSessions();
+    console.log("Checking browser sessions with Slack…");
+    const sessions = await listValidBrowserSessionOptions({
+      launchChrome: opts.launchChrome !== false,
+    });
     if (!sessions.length) {
-      console.log("No xoxc tokens found in browser/Slack Local Storage.");
+      console.log("No valid sessions found (expired tokens are skipped).");
       return;
     }
-    console.log(`Found ${sessions.length} token(s):\n`);
+    console.log(`Found ${sessions.length} valid session(s):\n`);
     for (const s of sessions) {
       console.log(`- ${s.teamName ?? "unknown"} (${s.teamId ?? "?"}) user=${s.userId ?? "?"}`);
       console.log(`  source: ${s.source}`);
-      console.log(`  token:  ${s.token.slice(0, 24)}…`);
+      console.log(`  token:  ${s.tokenPreview}`);
     }
     return;
   }

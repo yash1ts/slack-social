@@ -18,7 +18,7 @@ const program = new Command();
 program
   .name("slack-social")
   .description("Index public Slack activity into a local Instagram-style feed")
-  .version("0.1.0");
+  .version("0.1.3");
 
 const auth = program.command("auth").description("Authenticate with Slack");
 

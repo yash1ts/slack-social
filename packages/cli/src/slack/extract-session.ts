@@ -11,6 +11,8 @@ export type FoundSession = {
   teamName?: string;
   userId?: string;
   source: string;
+  /** LevelDB/log file mtime — newer usually means a fresher token */
+  seenAt: number;
 };
 
 export type BrowserProfile = {
@@ -72,9 +74,12 @@ function scanLeveldbForTokens(leveldbPath: string, source: string): FoundSession
   }
 
   for (const file of files) {
+    const filePath = join(leveldbPath, file);
     let buf: Buffer;
+    let seenAt = 0;
     try {
-      buf = readFileSync(join(leveldbPath, file));
+      seenAt = statSync(filePath).mtimeMs;
+      buf = readFileSync(filePath);
     } catch {
       continue;
     }
@@ -97,6 +102,7 @@ function scanLeveldbForTokens(leveldbPath: string, source: string): FoundSession
         userId,
         teamName,
         source: `${source}:${file}`,
+        seenAt,
       });
     }
   }
@@ -113,7 +119,161 @@ export function findBrowserSessions(): FoundSession[] {
       all.push(s);
     }
   }
+  // Newest first — stale LevelDB copies of the same workspace tend to be older
+  all.sort((a, b) => b.seenAt - a.seenAt);
   return all;
+}
+
+/** One row per workspace for the login UI (prefer newest token). Sync — may include stale tokens. */
+export function listBrowserSessionOptions(): Array<{
+  id: string;
+  teamId?: string;
+  teamName?: string;
+  userId?: string;
+  source: string;
+  tokenPreview: string;
+}> {
+  const byTeam = new Map<string, FoundSession>();
+  const orphans: FoundSession[] = [];
+  for (const s of findBrowserSessions()) {
+    if (!s.teamId) {
+      orphans.push(s);
+      continue;
+    }
+    const prev = byTeam.get(s.teamId);
+    if (!prev || s.seenAt > prev.seenAt) byTeam.set(s.teamId, s);
+  }
+  const preferred = [...byTeam.values(), ...orphans].sort((a, b) => b.seenAt - a.seenAt);
+  return preferred.map((s) => ({
+    id: sessionIdFor(s.token),
+    teamId: s.teamId,
+    teamName: s.teamName,
+    userId: s.userId,
+    source: s.source,
+    tokenPreview: `${s.token.slice(0, 18)}…`,
+  }));
+}
+
+function cookieValueCandidates(rawCookie: string): string[] {
+  const raw = rawCookie.replace(/^d=/, "");
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    /* keep raw */
+  }
+  return [...new Set([raw, decoded])];
+}
+
+async function authTestToken(
+  token: string,
+  rawCookie: string,
+): Promise<{
+  ok: boolean;
+  error?: string;
+  userId?: string;
+  teamId?: string;
+  cookieVal?: string;
+}> {
+  let lastError = "invalid_auth";
+  for (const cookieVal of cookieValueCandidates(rawCookie)) {
+    try {
+      const res = await fetch("https://slack.com/api/auth.test", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Cookie: `d=${cookieVal}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        user_id?: string;
+        team_id?: string;
+      };
+      if (data.ok) {
+        return {
+          ok: true,
+          userId: data.user_id,
+          teamId: data.team_id,
+          cookieVal,
+        };
+      }
+      lastError = data.error ?? "invalid_auth";
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : "auth.test failed";
+    }
+  }
+  return { ok: false, error: lastError };
+}
+
+/** Fetch the Slack `d` cookie via CDP (optionally launching Chrome). */
+export async function resolveSlackSessionCookie(
+  launchChrome = true,
+): Promise<string | null> {
+  let cookie = await cdpCookies(9222);
+  if (!cookie && launchChrome) {
+    const profiles = candidates().filter(
+      (p) => p.name.startsWith("chrome") || p.name === "chromium" || p.name === "brave",
+    );
+    for (const profile of profiles) {
+      cookie = await launchDebugChromeAndGetCookie(profile);
+      if (cookie) break;
+    }
+  }
+  return cookie;
+}
+
+export type BrowserSessionOption = {
+  id: string;
+  teamId?: string;
+  teamName?: string;
+  userId?: string;
+  source: string;
+  tokenPreview: string;
+};
+
+/**
+ * Load browser/desktop tokens and only return ones that pass Slack auth.test
+ * with the current `d` cookie. Call on login page start / Refresh.
+ */
+export async function listValidBrowserSessionOptions(opts: {
+  launchChrome?: boolean;
+} = {}): Promise<BrowserSessionOption[]> {
+  const cookie = await resolveSlackSessionCookie(opts.launchChrome !== false);
+  if (!cookie) {
+    return [];
+  }
+
+  // Group by team (and orphans), try newest tokens first until one validates.
+  const byKey = new Map<string, FoundSession[]>();
+  for (const s of findBrowserSessions()) {
+    const key = s.teamId ?? `token:${s.token}`;
+    const list = byKey.get(key) ?? [];
+    list.push(s);
+    byKey.set(key, list);
+  }
+
+  const valid: BrowserSessionOption[] = [];
+  for (const group of byKey.values()) {
+    group.sort((a, b) => b.seenAt - a.seenAt);
+    for (const s of group) {
+      const test = await authTestToken(s.token, cookie);
+      if (!test.ok) continue;
+      valid.push({
+        id: sessionIdFor(s.token),
+        teamId: test.teamId ?? s.teamId,
+        teamName: s.teamName,
+        userId: test.userId ?? s.userId,
+        source: s.source,
+        tokenPreview: `${s.token.slice(0, 18)}…`,
+      });
+      break; // one working token per workspace
+    }
+  }
+
+  return valid.sort((a, b) => (a.teamName ?? "").localeCompare(b.teamName ?? ""));
 }
 
 async function cdpCookies(port: number): Promise<string | null> {
@@ -322,15 +482,7 @@ export async function importBrowserSession(opts: {
     session = match;
   }
 
-  let cookie = await cdpCookies(9222);
-
-  if (!cookie && opts.launchChrome !== false) {
-    const profiles = candidates().filter((p) => p.name.startsWith("chrome") || p.name === "chromium" || p.name === "brave");
-    for (const profile of profiles) {
-      cookie = await launchDebugChromeAndGetCookie(profile);
-      if (cookie) break;
-    }
-  }
+  const cookie = await resolveSlackSessionCookie(opts.launchChrome !== false);
 
   if (!cookie) {
     throw new Error(
@@ -354,53 +506,23 @@ export function sessionIdFor(token: string): string {
   return Bun.hash(token).toString(16);
 }
 
-export function listBrowserSessionOptions(): Array<{
-  id: string;
-  teamId?: string;
-  teamName?: string;
-  userId?: string;
-  source: string;
-  tokenPreview: string;
-}> {
-  return findBrowserSessions().map((s) => ({
-    id: sessionIdFor(s.token),
-    teamId: s.teamId,
-    teamName: s.teamName,
-    userId: s.userId,
-    source: s.source,
-    tokenPreview: `${s.token.slice(0, 18)}…`,
-  }));
-}
-
 export async function verifyAndStoreSession(imported: ImportResult): Promise<ImportResult> {
   const { writeCredentials } = await import("../config");
-  const cookieHeader = imported.sessionCookie.startsWith("d=")
-    ? imported.sessionCookie
-    : `d=${imported.sessionCookie}`;
-
-  const res = await fetch("https://slack.com/api/auth.test", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${imported.token}`,
-      Cookie: cookieHeader,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  });
-  const data = (await res.json()) as {
-    ok: boolean;
-    error?: string;
-    user_id?: string;
-    team_id?: string;
-  };
-  if (!data.ok) {
-    throw new Error(`Slack rejected session: ${data.error ?? "invalid_auth"}`);
+  const test = await authTestToken(imported.token, imported.sessionCookie);
+  if (!test.ok || !test.cookieVal) {
+    const workspace = imported.teamName ?? imported.teamId ?? "this workspace";
+    throw new Error(
+      `Slack rejected session for ${workspace}: ${test.error ?? "invalid_auth"}. ` +
+        `Open ${workspace} in Chrome at app.slack.com (fully load the workspace), quit Chrome, then tap Refresh and try again. ` +
+        `Stale tokens from the Slack desktop app often cause this.`,
+    );
   }
 
   writeCredentials({
     accessToken: imported.token,
-    sessionCookie: imported.sessionCookie.replace(/^d=/, ""),
-    teamId: data.team_id ?? imported.teamId ?? "",
-    userId: data.user_id ?? imported.userId ?? "",
+    sessionCookie: test.cookieVal,
+    teamId: test.teamId ?? imported.teamId ?? "",
+    userId: test.userId ?? imported.userId ?? "",
     clientId: "",
     obtainedAt: Date.now(),
     authKind: "browser_session",
@@ -409,7 +531,8 @@ export async function verifyAndStoreSession(imported: ImportResult): Promise<Imp
 
   return {
     ...imported,
-    teamId: data.team_id ?? imported.teamId,
-    userId: data.user_id ?? imported.userId,
+    sessionCookie: test.cookieVal,
+    teamId: test.teamId ?? imported.teamId,
+    userId: test.userId ?? imported.userId,
   };
 }
