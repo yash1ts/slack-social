@@ -1,4 +1,4 @@
-import type { PermissionCheckResult } from "@slack-social/shared";
+import { isDemoCredentials, type PermissionCheckResult } from "@slack-social/shared";
 import type { SlackAuthProvider } from "./auth-provider";
 
 function slackErrorMessage(err: unknown): string {
@@ -37,6 +37,18 @@ export async function checkPermissions(provider: SlackAuthProvider): Promise<Per
   let teamName = creds.teamName;
   let userId = creds.userId || undefined;
   let channelCount = 0;
+
+  if (isDemoCredentials(creds)) {
+    return {
+      ok: true,
+      teamId: teamId || "T_DEMO",
+      teamName: teamName || "Demo Workspace",
+      userId: userId || "U_DEMO_YOU",
+      authKind: "demo",
+      channelCount: 4,
+      missingCapabilities: [],
+    };
+  }
 
   if (creds.accessToken.startsWith("xapp-")) {
     return {

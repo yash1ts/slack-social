@@ -37,7 +37,8 @@ Slack is channel-first and can feel like an inbox. slack-social is feed-first: r
 
 ```bash
 # Requires Bun (https://bun.sh)
-npx slack-social serve
+npx slack-social demo    # trial with dummy data
+npx slack-social serve   # your real Slack workspace
 ```
 
 Open http://localhost:3000 and log in with Slack.

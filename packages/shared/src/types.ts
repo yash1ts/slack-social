@@ -1,4 +1,10 @@
-export type AuthKind = "user_oauth" | "browser_session" | "bot" | "env_token";
+export type AuthKind =
+  | "user_oauth"
+  | "browser_session"
+  | "bot"
+  | "env_token"
+  /** Local trial session with seeded dummy data — never calls Slack APIs */
+  | "demo";
 
 export type Credentials = {
   accessToken: string;
@@ -15,11 +21,19 @@ export type Credentials = {
 
 export function inferAuthKind(token: string, opts?: { fromEnv?: boolean }): AuthKind {
   if (opts?.fromEnv) return "env_token";
+  if (token.startsWith("xoxdemo-")) return "demo";
   if (token.startsWith("xoxc-")) return "browser_session";
   if (token.startsWith("xoxb-")) return "bot";
   if (token.startsWith("xoxp-")) return "user_oauth";
   // OAuth user tokens sometimes omit a stable prefix in older installs
   return "user_oauth";
+}
+
+export function isDemoCredentials(creds: { authKind?: AuthKind; accessToken?: string }): boolean {
+  return (
+    creds.authKind === "demo" ||
+    Boolean(creds.accessToken?.startsWith("xoxdemo-"))
+  );
 }
 
 export function normalizeCredentials(

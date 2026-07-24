@@ -8,15 +8,24 @@ Make work fun. Find friends on Slack — a local Instagram-style feed for public
 
 ## Run
 
+Try with dummy data (no Slack login):
+
+```bash
+npx slack-social demo
+```
+
+Or start normally and log in with Slack:
+
 ```bash
 npx slack-social serve
 ```
 
-Open http://localhost:3000 and log in with Slack.
+Open http://localhost:3000.
 
 ## Commands
 
 ```bash
+npx slack-social demo           # trial UI with seeded dummy data
 npx slack-social serve          # start the local web UI
 npx slack-social auth           # log in with Slack
 npx slack-social sync           # index public channels into local SQLite

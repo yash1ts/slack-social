@@ -70,11 +70,19 @@ Work feels less like inbox zero — and more like hanging out.
 
 Requires [Bun](https://bun.sh).
 
+Try it instantly with dummy data (no Slack login):
+
+```bash
+npx slack-social demo
+```
+
+Or connect your workspace:
+
 ```bash
 npx slack-social serve
 ```
 
-Open [localhost:3000](http://localhost:3000) → log in with Slack → **start scrolling.**
+Open [localhost:3000](http://localhost:3000) → **start scrolling.**
 
 ---
 
