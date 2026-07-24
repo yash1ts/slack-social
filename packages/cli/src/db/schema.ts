@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
   real_name TEXT,
   avatar_url TEXT,
   title TEXT,
+  email TEXT,
+  about TEXT,
+  phone TEXT,
   is_bot INTEGER DEFAULT 0,
   reactions_earned INTEGER DEFAULT 0,
   updated_at INTEGER NOT NULL

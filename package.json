@@ -2,7 +2,7 @@
   "name": "slack-social",
   "version": "0.1.0",
   "private": true,
-  "description": "Index public Slack activity into a local Instagram-style feed",
+  "description": "Make work fun. Find friends on Slack — local Instagram-style social feed for public Slack activity",
   "workspaces": ["packages/*"],
   "packageManager": "bun@1.3.11",
   "bin": {

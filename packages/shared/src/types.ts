@@ -129,6 +129,12 @@ export type UserProfile = {
   realName: string | null;
   avatarUrl: string | null;
   title: string | null;
+  /** Slack profile email when visible to the authed user */
+  email?: string | null;
+  /** About me / bio / role description when set */
+  about?: string | null;
+  /** Phone number when set on the Slack profile */
+  phone?: string | null;
   statusText?: string | null;
   statusEmoji?: string | null;
   reactionsEarned: number;
@@ -171,6 +177,7 @@ export const USER_SCOPES = [
   "channels:history",
   "channels:read",
   "users:read",
+  "users:read.email",
   "users.profile:read",
   "reactions:read",
   "emoji:read",

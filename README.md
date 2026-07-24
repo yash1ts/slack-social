@@ -1,59 +1,103 @@
+<div align="center">
+
+<img src="docs/assets/logo.svg" alt="slack-social logo" width="120" height="120" />
+
 # slack-social
 
-Open-source, developer-first CLI that indexes **public Slack workspace activity** into a local SQLite database and serves an Instagram-inspired feed on `localhost:3000`.
+### Make work fun. Find friends on Slack.
 
-100% local — zero cloud data storage.
+<br />
 
-## Quick start (~30 seconds)
+<img src="https://img.shields.io/badge/scroll_the_vibes-f77737?style=for-the-badge" alt="scroll the vibes" />
+<img src="https://img.shields.io/badge/not_the_channels-e1306c?style=for-the-badge" alt="not the channels" />
+<img src="https://img.shields.io/badge/100%25_local-c13584?style=for-the-badge" alt="100% local" />
+
+<br /><br />
+
+**Your workspace already has the good stuff —**  
+wins, memes, shoutouts, late-night ideas, the people you’d actually grab coffee with.
+
+**slack-social** turns public Slack into a beautiful social feed.  
+Follow coworkers. Explore what’s popping. React like it’s Instagram.  
+Work feels less like inbox zero — and more like hanging out.
+
+<br />
+
+<p>
+  <a href="https://yash1ts.github.io/slack-social/"><strong>Live showcase →</strong></a>
+  ·
+  <a href="https://github.com/yash1ts/slack-social/releases/tag/cli-latest">Download CLI</a>
+</p>
+
+<br />
+
+<img src="docs/assets/feed-mobile.png" alt="slack-social trending feed screenshot" width="260" />
+&nbsp;
+<img src="docs/assets/explore-mobile.png" alt="slack-social explore grid screenshot" width="260" />
+&nbsp;
+<img src="docs/assets/login-mobile.png" alt="slack-social login screenshot" width="260" />
+
+<br />
+
+</div>
+
+---
+
+### Why you’ll love it
+
+**A real feed** · Trending posts from public channels, ranked for what’s actually worth your attention.
+
+**Find your people** · Profiles, follows, and the humans behind the handles — not just another `#general` scroll.
+
+**Explore the vibes** · Top media and public posts in a glanceable grid.
+
+**Stays on your machine** · Indexed locally. Your data. Your laptop. Zero cloud drama.
+
+---
+
+### Slack vs slack-social
+
+| Slack app | slack-social |
+|-----------|--------------|
+| Channel-first chat | Feed-first social browsing |
+| Easy to miss culture posts | Trending + Explore surfaces gems |
+| Hard to notice new people | Profiles & follows |
+| Feels like an inbox | Feels like hanging out |
+
+---
+
+### Ready to hang?
 
 ```bash
 bun install
 bun run slack-social serve
 ```
 
-1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From an app manifest**
-2. Paste [`app-manifest.json`](./app-manifest.json) and click **Create**
-3. Open http://localhost:3000 — paste **Client ID** and **Client Secret** into the login fields
-4. Click **Login with Slack** → authorize once → browse your feed
+Open [localhost:3000](http://localhost:3000) → log in with Slack → **start scrolling.**
 
-```bash
-bun run slack-social sync   # index public channels (also runs on serve)
-```
+---
 
-## App manifest
+### FAQ
 
-[`app-manifest.json`](./app-manifest.json) pre-configures redirect URLs and user scopes so you don’t set permissions by hand:
+**What is slack-social?**  
+An open-source local app that indexes public Slack activity into SQLite and serves an Instagram-style feed on your machine — so you can make work fun and find friends on Slack.
 
-- Redirect: `http://localhost:3000/api/auth/callback`
-- User scopes: `channels:history`, `channels:read`, `reactions:read`, `users:read`, `users.profile:read`, `files:read`
+**Is my data uploaded anywhere?**  
+No. Posts, media, and credentials live under `~/.slack-social`. The app does not store your workspace in a third-party cloud.
 
-## Commands
+**Who is it for?**  
+Teams and communities that live in Slack and want a friendlier way to discover people, wins, and culture across public channels.
 
-| Command | Description |
-|---------|-------------|
-| `slack-social serve` | Start UI (Login with Slack) |
-| `slack-social sync` | Index public channels |
-| `slack-social auth` | CLI OAuth (uses saved Client ID/Secret) |
-| `slack-social auth import-session` | Auto-read xoxc + cookie from Chrome/Slack Local Storage |
-| `slack-social auth import-session --list` | List tokens found locally |
-| `slack-social auth logout` | Clear stored user token |
-| `slack-social debug top` | Print top trending posts |
+---
 
-## Data locations
+<div align="center">
 
-- `~/.slack-social/db.sqlite` — indexed posts, reactions, follows
-- `~/.slack-social/media/` — cached image attachments
-- `~/.slack-social/credentials.json` — user OAuth token (after Login with Slack)
+<p>
+  <img src="https://img.shields.io/badge/Make_work_fun-f77737?style=flat-square" alt="Make work fun" />
+  <img src="https://img.shields.io/badge/Find_friends_on_Slack-e1306c?style=flat-square" alt="Find friends on Slack" />
+  <img src="https://img.shields.io/badge/MIT-c13584?style=flat-square" alt="MIT" />
+</p>
 
-## Monorepo
+<sub>Open source · Built for humans who live in Slack · <a href="llms.txt">llms.txt</a> · <a href="https://yash1ts.github.io/slack-social/">Showcase</a></sub>
 
-```
-app-manifest.json   Slack app manifest (Create from manifest)
-packages/cli        Bun CLI (commander + @slack/web-api + bun:sqlite)
-packages/shared     Types + trending score formula
-packages/web        Next.js Instagram-style UI
-```
-
-## License
-
-MIT
+</div>

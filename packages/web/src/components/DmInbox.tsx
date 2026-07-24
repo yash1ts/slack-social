@@ -21,7 +21,10 @@ export function DmInbox() {
           error?: string;
         };
         if (!cancelled) {
-          setConversations(data.conversations ?? []);
+          const list = [...(data.conversations ?? [])].sort(
+            (a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0),
+          );
+          setConversations(list);
           if (!res.ok) setError(data.error ?? "Failed to load messages");
         }
       } catch {

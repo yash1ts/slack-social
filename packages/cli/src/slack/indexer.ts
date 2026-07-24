@@ -7,6 +7,7 @@ import {
   FAST_FORWARD_MS,
   isBotUser,
   msToSlackTs,
+  shouldSkipFeedChannel,
   shouldSkipMessage,
   slackMessageBody,
   slackTsToMs,
@@ -329,13 +330,18 @@ async function listChannels(
     cursor = listed.response_metadata?.next_cursor || undefined;
   } while (cursor);
 
+  // Drop noise channels (support/contact/notification/error/deploy keywords) before fetch/index
+  const usable = channels.filter(
+    (c) => c.id && c.name && !shouldSkipFeedChannel(c.name),
+  );
+
   if (opts.channels?.length) {
     const wanted = new Set(opts.channels.map((c) => c.replace(/^#/, "").toLowerCase()));
-    return channels.filter(
+    return usable.filter(
       (c) => c.id && (wanted.has(c.id.toLowerCase()) || wanted.has((c.name ?? "").toLowerCase())),
     );
   }
-  return channels;
+  return usable;
 }
 
 function channelMeta(ch: SlackChannel): {
@@ -344,6 +350,7 @@ function channelMeta(ch: SlackChannel): {
   defaultTag: string | null;
 } | null {
   if (!ch.id || !ch.name) return null;
+  if (shouldSkipFeedChannel(ch.name)) return null;
   return {
     id: ch.id,
     name: ch.name,

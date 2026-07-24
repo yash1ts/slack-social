@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Instagram Radial/Linear Gradient Mix -->
+    <radialGradient id="ig-gradient" cx="18%" cy="15%" r="115%">
+      <stop offset="0%" stop-color="#FFDF00"/>
+      <stop offset="22%" stop-color="#FF512F"/>
+      <stop offset="58%" stop-color="#DD2476"/>
+      <stop offset="88%" stop-color="#7303C0"/>
+      <stop offset="100%" stop-color="#240B36"/>
+    </radialGradient>
+
+    <!-- Subtle Drop Shadow for 3D Icon Depth -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <!-- Instagram Squircle Frame -->
+  <rect x="32" y="32" width="448" height="448" rx="112" ry="112" fill="url(#ig-gradient)" filter="url(#soft-shadow)"/>
+
+  <!-- Bold White Hashtag (#) Symbol -->
+  <g fill="#FFFFFF">
+    <!-- Horizontal Bars -->
+    <rect x="144" y="196" width="224" height="40" rx="20"/>
+    <rect x="144" y="276" width="224" height="40" rx="20"/>
+
+    <!-- Slanted Vertical Bars -->
+    <g transform="matrix(1 0 -0.223 1 57 0)">
+      <rect x="194" y="136" width="40" height="240" rx="20"/>
+      <rect x="278" y="136" width="40" height="240" rx="20"/>
+    </g>
+  </g>
+</svg>

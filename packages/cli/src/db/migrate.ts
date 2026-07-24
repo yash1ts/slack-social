@@ -97,6 +97,19 @@ export function migrate(db: Database): void {
     `);
     markMigration(db, 3);
   }
+
+  if (!migrationApplied(db, 4)) {
+    for (const column of ["email", "about", "phone"] as const) {
+      if (!hasColumn(db, "users", column)) {
+        try {
+          db.exec(`ALTER TABLE users ADD COLUMN ${column} TEXT;`);
+        } catch {
+          /* column may already exist */
+        }
+      }
+    }
+    markMigration(db, 4);
+  }
 }
 
 export function closeDb(): void {

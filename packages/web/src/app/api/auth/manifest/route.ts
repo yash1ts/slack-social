@@ -28,6 +28,7 @@ const FALLBACK_MANIFEST = {
         "reactions:read",
         "emoji:read",
         "users:read",
+        "users:read.email",
         "users.profile:read",
         "files:read",
         "files:write",
