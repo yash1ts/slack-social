@@ -1,5 +1,5 @@
-import type { UserProfile } from "@slack-social/shared";
-import { getAuthProvider, getSession } from "@/lib/auth";
+import { isDemoCredentials, type UserProfile } from "@slack-social/shared";
+import { getSession, tryGetAuthProvider } from "@/lib/auth";
 import { dbApi, getDb } from "@/lib/db";
 import { fetchAndCacheSlackProfile } from "../../../cli/src/slack/profile";
 
@@ -20,20 +20,23 @@ export async function resolveUserProfile(
   const db = getDb();
 
   try {
-    const provider = getAuthProvider();
-    const client = provider.createClient();
-    const live = await fetchAndCacheSlackProfile(client, db, userId);
-    if (live) {
-      extras = {
-        statusText: live.statusText,
-        statusEmoji: live.statusEmoji,
-        email: live.email,
-        about: live.about,
-        phone: live.phone,
-      };
+    const provider = tryGetAuthProvider();
+    // Demo / trial sessions never call Slack — use seeded SQLite profiles only.
+    if (provider && !isDemoCredentials(provider.getCredentials())) {
+      const client = provider.createClient();
+      const live = await fetchAndCacheSlackProfile(client, db, userId);
+      if (live) {
+        extras = {
+          statusText: live.statusText,
+          statusEmoji: live.statusEmoji,
+          email: live.email,
+          about: live.about,
+          phone: live.phone,
+        };
+      }
     }
   } catch {
-    // Fall through to DB — e.g. offline / missing scopes
+    // Fall through to DB — e.g. offline / missing scopes / expired session
   }
 
   const profile = dbApi.getUserProfile(db, userId);

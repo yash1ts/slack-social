@@ -1,5 +1,6 @@
 import { USER_SCOPES } from "@slack-social/shared";
-import { clearCredentials, readCredentials, resolveClientCredentials } from "../config";
+import { clearSession, readCredentials, resolveClientCredentials } from "../config";
+import { stopSyncBackground } from "../slack/sync-runner";
 import { runLocalOAuth } from "../slack/oauth";
 
 export async function authLogin(): Promise<void> {
@@ -30,6 +31,10 @@ Slack app credentials not found.
 }
 
 export async function authLogout(): Promise<void> {
-  clearCredentials();
-  console.log("Logged out. Removed ~/.slack-social/credentials.json");
+  stopSyncBackground();
+  clearSession();
+  console.log(
+    "Logged out. Removed session (~/.slack-social/credentials.json).\n" +
+      "Kept local index: db, media, and emoji cache under ~/.slack-social/",
+  );
 }
